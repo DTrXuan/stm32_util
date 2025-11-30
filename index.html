@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>STM32 Timer Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      padding: 24px 16px 48px;
+    }
+
+    .card {
+      background: #020617;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 1.6rem;
+      letter-spacing: 0.03em;
+    }
+
+    h2 {
+      margin-top: 1.8rem;
+      font-size: 1.1rem;
+      color: #cbd5f5;
+    }
+
+    p.description {
+      margin-top: 4px;
+      margin-bottom: 16px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: #e5e7eb;
+    }
+
+    input,
+    select {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      outline: none;
+      font-size: 0.9rem;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+    }
+
+    .inline-unit {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .inline-unit span {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
+
+    .results {
+      margin-top: 8px;
+      border-radius: 12px;
+      padding: 16px;
+      background: #020617;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .result-item {
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .result-label {
+      color: #9ca3af;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .result-value {
+      font-size: 0.95rem;
+      margin-top: 2px;
+    }
+
+    .highlight {
+      color: #22c55e;
+      font-weight: 600;
+    }
+
+    .error {
+      color: #f97373;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .footer {
+      margin-top: 16px;
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      margin-bottom: 12px;
+      color: #9ca3af;
+    }
+
+    .formula-box {
+      margin-top: 12px;
+      margin-bottom: 8px;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 10px;
+      border: 1px dashed rgba(148, 163, 184, 0.6);
+      font-size: 0.8rem;
+      color: #cbd5f5;
+    }
+
+    .formula-box code {
+      font-family: "JetBrains Mono", Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .lock-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      color: #9ca3af;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .lock-label input {
+      width: auto;
+      margin: 0;
+    }
+
+    @media (max-width: 600px) {
+      .card {
+        padding: 16px;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="badge">STM32 Timer Helper</div>
+      <h1>STM32 Timer Frequency & Period Calculator</h1>
+      <p class="description">
+        Tool tính tần số / chu kỳ timer STM32 và thông số PWM. Nhập một trong các ô Hz, ms, Duty, CCR, độ rộng xung…
+        các giá trị còn lại sẽ tự động cập nhật (dựa trên clock + PSC + ARR hiện tại).
+        Tick "giữ" để không cho tool tự sửa ô đó.
+      </p>
+
+      <h2>Giải thích công thức</h2>
+      <div class="formula-box">
+        <div><strong>Timer clock:</strong> <code>f_clk</code> (Hz)</div>
+        <div><strong>Edge-aligned:</strong> <code>f_timer = f_clk / ((PSC + 1) × (ARR + 1))</code></div>
+        <div><strong>Center-aligned:</strong> <code>f_timer = f_clk / (2 × (PSC + 1) × (ARR + 1))</code></div>
+        <div><strong>Chu kỳ:</strong> <code>T = 1 / f_timer</code></div>
+        <div><strong>PWM Duty:</strong> <code>Duty(%) = CCR / (ARR + 1) × 100%</code></div>
+        <div><strong>Độ rộng xung:</strong> <code>PwmWidth = Duty × T</code></div>
+      </div>
+
+      <h2>Timer Settings</h2>
+      <p class="description">
+        Nhập clock timer, Prescaler, ARR. Hoặc nhập tần số / chu kỳ mong muốn, tool sẽ tính lại PSC/ARR cho bạn
+        tùy theo ô nào đang được "giữ".
+      </p>
+
+      <div class="grid">
+        <div class="field">
+          <label for="clk">Timer clock (MHz)</label>
+          <div class="inline-unit">
+            <input id="clk" type="number" min="0" step="0.001" value="72" />
+            <span>MHz</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="psc">Prescaler (PSC)</label>
+          <div class="inline-unit">
+            <input id="psc" type="number" min="0" step="1" value="71" />
+            <label class="lock-label">
+              <input type="checkbox" id="lockPsc" />
+              giữ
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="arr">Auto-reload (ARR)</label>
+          <div class="inline-unit">
+            <input id="arr" type="number" min="0" step="1" value="999" />
+            <label class="lock-label">
+              <input type="checkbox" id="lockArr" />
+              giữ
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="mode">Counting mode</label>
+          <select id="mode">
+            <option value="edge">Edge-aligned (Up/Down)</option>
+            <option value="center">Center-aligned</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="targetFreq">Tần số mong muốn (Hz)</label>
+          <div class="inline-unit">
+            <input id="targetFreq" type="number" min="0" step="0.001" placeholder="VD: 1000" />
+            <span>Hz</span>
+            <label class="lock-label">
+              <input type="checkbox" id="lockTargetFreq" />
+              giữ
+            </label>
+          </div>
+        </div>
+        <div class="field">
+          <label for="targetPeriod">Chu kỳ mong muốn (ms)</label>
+          <div class="inline-unit">
+            <input id="targetPeriod" type="number" min="0" step="0.001" placeholder="VD: 1" />
+            <span>ms</span>
+            <label class="lock-label">
+              <input type="checkbox" id="lockTargetPeriod" />
+              giữ
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div id="timerError" class="error" style="display: none;"></div>
+
+      <div class="results" id="timerResults">
+        <div class="result-item">
+          <div class="result-label">Tần số timer (update / PWM base)</div>
+          <div class="result-value">
+            <span id="freqHz" class="highlight">–</span>
+          </div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Chu kỳ</div>
+          <div class="result-value">
+            <span id="period" class="highlight">–</span>
+          </div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Ghi chú</div>
+          <div class="result-value" id="note">—</div>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 24px;">PWM</h2>
+      <p class="description">
+        Các ô dưới đây liên quan chặt với nhau. Bạn có thể:
+        <br />– chỉnh <strong>Duty (%)</strong>, hoặc <strong>CCR</strong>, hoặc <strong>độ rộng xung (ms)</strong>.
+        <br />Tool sẽ auto cập nhật các ô còn lại (dựa trên tần số timer hiện tại). Tick "giữ" để cố định một ô.
+      </p>
+
+      <div class="grid">
+        <div class="field">
+          <label for="ccr">Compare value (CCR)</label>
+          <div class="inline-unit">
+            <input id="ccr" type="number" min="0" step="1" value="500" />
+            <label class="lock-label">
+              <input type="checkbox" id="lockCcr" />
+              giữ
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="dutyInput">Duty (%)</label>
+          <div class="inline-unit">
+            <input id="dutyInput" type="number" min="0" max="100" step="0.01" value="50" />
+            <span>%</span>
+            <label class="lock-label">
+              <input type="checkbox" id="lockDuty" />
+              giữ
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="pulseInput">Độ rộng xung (ms)</label>
+          <div class="inline-unit">
+            <input id="pulseInput" type="number" min="0" step="0.000001" placeholder="VD: 0.5" />
+            <span>ms</span>
+            <label class="lock-label">
+              <input type="checkbox" id="lockPulse" />
+              giữ
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div id="pwmError" class="error" style="display: none;"></div>
+
+      <div class="results" id="pwmResults">
+        <div class="result-item">
+          <div class="result-label">Duty cycle (tính từ CCR)</div>
+          <div class="result-value">
+            <span id="duty" class="highlight">–</span>
+          </div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Độ rộng xung (từ duty)</div>
+          <div class="result-value">
+            <span id="pulseWidth">–</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        Gợi ý: Với STM32, timer clock thường = APB × 2 nếu prescaler APB &gt; 1 (tùy dòng MCU). Nhớ check trong RCC tree.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isUpdating = false;
+
+    function formatFrequency(f) {
+      if (!isFinite(f) || f <= 0) return "–";
+      if (f >= 1e6) return (f / 1e6).toFixed(3) + " MHz";
+      if (f >= 1e3) return (f / 1e3).toFixed(3) + " kHz";
+      return f.toFixed(3) + " Hz";
+    }
+
+    function formatTime(t) {
+      if (!isFinite(t) || t <= 0) return "–";
+      if (t < 1e-6) return (t * 1e9).toFixed(2) + " ns";
+      if (t < 1e-3) return (t * 1e6).toFixed(2) + " µs";
+      if (t < 1) return (t * 1e3).toFixed(2) + " ms";
+      return t.toFixed(6) + " s";
+    }
+
+    function getTimerParams() {
+      const clkMHz = parseFloat(document.getElementById("clk").value);
+      const psc = parseInt(document.getElementById("psc").value, 10);
+      const arr = parseInt(document.getElementById("arr").value, 10);
+      const mode = document.getElementById("mode").value;
+      return { clkMHz, psc, arr, mode };
+    }
+
+    function isChecked(id) {
+      const el = document.getElementById(id);
+      return el ? el.checked : false;
+    }
+
+    function calcTimerFreqAndPeriod() {
+      const { clkMHz, psc, arr, mode } = getTimerParams();
+      const timerError = document.getElementById("timerError");
+      timerError.style.display = "none";
+      timerError.textContent = "";
+
+      let valid = true;
+      if (!(clkMHz > 0)) {
+        timerError.textContent = "Timer clock phải > 0.";
+        timerError.style.display = "block";
+        valid = false;
+      }
+      if (!(psc >= 0) || !(arr >= 0)) {
+        timerError.textContent = "PSC và ARR phải >= 0.";
+        timerError.style.display = "block";
+        valid = false;
+      }
+
+      let fTimer = NaN;
+      let T = NaN;
+
+      if (valid) {
+        const clkHz = clkMHz * 1e6;
+        const base = (psc + 1) * (arr + 1);
+        if (base <= 0) {
+          timerError.textContent = "((PSC + 1) × (ARR + 1)) phải > 0.";
+          timerError.style.display = "block";
+        } else {
+          if (mode === "edge") {
+            fTimer = clkHz / base;
+          } else {
+            fTimer = clkHz / (2 * base);
+          }
+          T = 1 / fTimer;
+        }
+      }
+
+      document.getElementById("freqHz").textContent = formatFrequency(fTimer);
+      document.getElementById("period").textContent = formatTime(T);
+
+      const note = document.getElementById("note");
+      if (!valid || !isFinite(fTimer) || fTimer <= 0) {
+        note.textContent = "Kiểm tra lại clock, PSC, ARR.";
+      } else if (document.getElementById("mode").value === "edge") {
+        note.textContent = "Edge-aligned: f = f_clk / ((PSC + 1) × (ARR + 1)).";
+      } else {
+        note.textContent = "Center-aligned: f = f_clk / (2 × (PSC + 1) × (ARR + 1)).";
+      }
+
+      return { fTimer, T };
+    }
+
+    // Tính lại PSC/ARR từ tần số/chu kỳ mong muốn
+    function recalcARRFromTarget(source) {
+      const { clkMHz, psc, arr, mode } = getTimerParams();
+      const targetFreqEl = document.getElementById("targetFreq");
+      const targetPeriodEl = document.getElementById("targetPeriod");
+      const timerError = document.getElementById("timerError");
+
+      const lockPsc = isChecked("lockPsc");
+      const lockArr = isChecked("lockArr");
+
+      if (!(clkMHz > 0)) return;
+
+      let fDesired = NaN;
+      if (source === "freq") {
+        const val = parseFloat(targetFreqEl.value);
+        if (val > 0) fDesired = val;
+      } else if (source === "period") {
+        const ms = parseFloat(targetPeriodEl.value);
+        if (ms > 0) fDesired = 1000 / ms;
+      }
+
+      if (!isFinite(fDesired) || fDesired <= 0) return;
+
+      const clkHz = clkMHz * 1e6;
+      const factor = mode === "edge" ? 1 : 2;
+      const divWanted = clkHz / fDesired / factor;
+
+      if (!lockArr && (psc >= 0)) {
+        // solve ARR, giữ PSC
+        const arrCalc = divWanted / (psc + 1) - 1;
+        let arrRounded = Math.round(arrCalc);
+        if (arrRounded < 0) arrRounded = 0;
+        if (isFinite(arrRounded)) {
+          document.getElementById("arr").value = arrRounded;
+        }
+      } else if (lockArr && !lockPsc && (arr >= 0)) {
+        // solve PSC, giữ ARR
+        const pscCalc = divWanted / (arr + 1) - 1;
+        let pscRounded = Math.round(pscCalc);
+        if (pscRounded < 0) pscRounded = 0;
+        if (isFinite(pscRounded)) {
+          document.getElementById("psc").value = pscRounded;
+        }
+      } else if (lockArr && lockPsc) {
+        // không đổi PSC/ARR
+        timerError.textContent = "PSC và ARR đều đang được giữ, không thể điều chỉnh chính xác tới tần số mong muốn.";
+        timerError.style.display = "block";
+      }
+
+      const res = calcTimerFreqAndPeriod();
+
+      if (res && isFinite(res.fTimer) && res.fTimer > 0) {
+        if (!isChecked("lockTargetFreq")) {
+          targetFreqEl.value = res.fTimer.toFixed(3);
+        }
+        if (!isChecked("lockTargetPeriod")) {
+          targetPeriodEl.value = (1000 / res.fTimer).toFixed(3);
+        }
+      } else {
+        timerError.textContent = "Không tính được tần số thực tế. Kiểm tra lại tham số.";
+        timerError.style.display = "block";
+      }
+
+      return res;
+    }
+
+    function recalcPwm(source) {
+      const { arr } = getTimerParams();
+      const { fTimer } = calcTimerFreqAndPeriod();
+
+      const pwmError = document.getElementById("pwmError");
+      pwmError.style.display = "none";
+      pwmError.textContent = "";
+
+      const ccrEl = document.getElementById("ccr");
+      const dutyInputEl = document.getElementById("dutyInput");
+      const pulseInputEl = document.getElementById("pulseInput");
+
+      const lockCcr = isChecked("lockCcr");
+      const lockDuty = isChecked("lockDuty");
+      const lockPulse = isChecked("lockPulse");
+
+      let ccr = parseInt(ccrEl.value, 10);
+      let dutyInput = parseFloat(dutyInputEl.value);
+      let pulseInputMs = parseFloat(pulseInputEl.value);
+
+      if (!isFinite(ccr) || ccr < 0) ccr = 0;
+      if (!isFinite(dutyInput)) dutyInput = NaN;
+      if (!isFinite(pulseInputMs)) pulseInputMs = NaN;
+
+      const maxCount = arr + 1;
+      if (!(arr >= 0) || maxCount <= 0) {
+        pwmError.textContent = "ARR không hợp lệ.";
+        pwmError.style.display = "block";
+      }
+
+      const hasTimer = isFinite(fTimer) && fTimer > 0;
+
+      if (source === "duty") {
+        if (!isFinite(dutyInput)) return;
+        const dutyClamped = Math.max(0, Math.min(100, dutyInput));
+        dutyInputEl.value = dutyClamped.toFixed(3);
+
+        const newCcr = dutyClamped / 100 * maxCount;
+        if (!lockCcr) {
+          ccr = Math.round(newCcr);
+          ccrEl.value = ccr;
+        }
+
+        if (hasTimer && !lockPulse) {
+          const period = 1 / fTimer;
+          const pw = period * dutyClamped / 100;
+          pulseInputEl.value = (pw * 1000).toFixed(6);
+        }
+      } else if (source === "ccr") {
+        const duty = (ccr / maxCount) * 100;
+        if (!lockDuty) {
+          dutyInputEl.value = duty.toFixed(3);
+        }
+        if (hasTimer && !lockPulse) {
+          const period = 1 / fTimer;
+          const pw = period * (Math.max(0, Math.min(100, duty)) / 100);
+          pulseInputEl.value = (pw * 1000).toFixed(6);
+        }
+      } else if (source === "pulse") {
+        if (!hasTimer) {
+          pwmError.textContent = "Không có tần số timer nên không suy ra được độ rộng xung.";
+          pwmError.style.display = "block";
+        } else if (isFinite(pulseInputMs) && pulseInputMs >= 0) {
+          const period = 1 / fTimer;
+          const pw = pulseInputMs / 1000;
+          let duty = (pw / period) * 100;
+          duty = Math.max(0, Math.min(100, duty));
+          const newCcr = duty / 100 * maxCount;
+
+          if (!lockDuty) {
+            dutyInputEl.value = duty.toFixed(3);
+          }
+          if (!lockCcr) {
+            ccr = Math.round(newCcr);
+            ccrEl.value = ccr;
+          }
+        }
+      } else if (source === "timer") {
+        const duty = (ccr / maxCount) * 100;
+        if (!lockDuty) {
+          dutyInputEl.value = duty.toFixed(3);
+        }
+        if (hasTimer && !lockPulse) {
+          const period = 1 / fTimer;
+          const pw = period * (Math.max(0, Math.min(100, duty)) / 100);
+          pulseInputEl.value = (pw * 1000).toFixed(6);
+        } else if (!hasTimer && !lockPulse) {
+          pulseInputEl.value = "";
+        }
+      }
+
+      let dutyFromCcr = (parseInt(ccrEl.value, 10) / maxCount) * 100;
+      if (!isFinite(dutyFromCcr)) dutyFromCcr = NaN;
+      document.getElementById("duty").textContent =
+        isFinite(dutyFromCcr) ? dutyFromCcr.toFixed(2) + " %" : "–";
+
+      if (hasTimer && isFinite(dutyFromCcr)) {
+        const period = 1 / fTimer;
+        const pw = period * (Math.max(0, Math.min(100, dutyFromCcr)) / 100);
+        document.getElementById("pulseWidth").textContent = formatTime(pw);
+      } else {
+        document.getElementById("pulseWidth").textContent = "–";
+      }
+    }
+
+    function fullRecalc(source) {
+      if (isUpdating) return;
+      isUpdating = true;
+
+      let timerRes;
+
+      if (source === "targetFreq") {
+        timerRes = recalcARRFromTarget("freq");
+      } else if (source === "targetPeriod") {
+        timerRes = recalcARRFromTarget("period");
+      } else {
+        timerRes = calcTimerFreqAndPeriod();
+        if (timerRes && isFinite(timerRes.fTimer) && timerRes.fTimer > 0) {
+          if (!isChecked("lockTargetFreq")) {
+            document.getElementById("targetFreq").value = timerRes.fTimer.toFixed(3);
+          }
+          if (!isChecked("lockTargetPeriod")) {
+            document.getElementById("targetPeriod").value = (1000 / timerRes.fTimer).toFixed(3);
+          }
+        }
+      }
+
+      if (source === "duty" || source === "ccr" || source === "pulse") {
+        recalcPwm(source);
+      } else {
+        recalcPwm("timer");
+      }
+
+      isUpdating = false;
+    }
+
+    ["clk", "psc", "arr", "mode"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => fullRecalc("timer"));
+      document.getElementById(id).addEventListener("change", () => fullRecalc("timer"));
+    });
+
+    document.getElementById("targetFreq").addEventListener("input", () => fullRecalc("targetFreq"));
+    document.getElementById("targetPeriod").addEventListener("input", () => fullRecalc("targetPeriod"));
+
+    document.getElementById("ccr").addEventListener("input", () => fullRecalc("ccr"));
+    document.getElementById("dutyInput").addEventListener("input", () => fullRecalc("duty"));
+    document.getElementById("pulseInput").addEventListener("input", () => fullRecalc("pulse"));
+
+    fullRecalc("timer");
+  </script>
+</body>
+</html>
